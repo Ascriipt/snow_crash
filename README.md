@@ -111,3 +111,18 @@ Exploit me$
 ```
 Hmmm this isn't exactly helpful, and that means we're going to dive in the wonderous world of ***disassembly***...
 What disassembling does is translating machine language into assembly language. A very useful **reverse-engineering** tool.
+I'll save you the trouble of looking for hours on end how to disassemble an executable properly. So here is what I ended up doing.
+First I disassemble level03 with ltrace and I get this :
+```
+level03@SnowCrash:~$ ltrace ./level03 
+__libc_start_main(0x80484a4, 1, 0xbffff7f4, 0x8048510, 0x8048580 <unfinished ...>
+getegid()                                        = 2003
+geteuid()                                        = 2003
+setresgid(2003, 2003, 2003, 0xb7e5ee55, 0xb7fed280) = 0
+setresuid(2003, 2003, 2003, 0xb7e5ee55, 0xb7fed280) = 0
+system("/usr/bin/env echo Exploit me"Exploit me
+ <unfinished ...>
+--- SIGCHLD (Child exited) ---
+<... system resumed> )                           = 0
++++ exited (status 0) +++
+```
