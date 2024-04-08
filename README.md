@@ -104,3 +104,10 @@ d--x--x--x 1 root    users    340 Aug 30  2015 ..
 ```
 A file again, and an executable.
 This is where it gets tricky.
+First let's execute it.
+```
+level03@SnowCrash:~$ ./level03 | cat -e
+Exploit me$
+```
+Hmmm this isn't exactly helpful, and that means we're going to dive in the wonderous world of ***disassembly***...
+What disassembling does is translating machine language into assembly language. A very useful **reverse-engineering** tool.
