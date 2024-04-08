@@ -41,7 +41,7 @@ Now that you have inputed the password and recuperated the following token with 
 # level01 :
 Let's repeat what we have done just before.
 using **ls** we can't find anything.
-Let's check */etc/![alt text](image.jpg)* just in case our user was a bit lazy...
+Let's check */etc/passwd* just in case our user was a bit lazy...
 ```
 level01@SnowCrash:~$ cat /etc/passwd
 [...]
