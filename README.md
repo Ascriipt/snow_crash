@@ -69,4 +69,10 @@ d--x--x--x 1 root    users    340 Aug 30  2015 ..
 -r-x------ 1 level02 level02  675 Apr  3  2012 .profile
 ```
 here we go A FILE !
-so what of it, what's a pcap ?
+so what of it, what's a pcap ? Well, a pcap is an interface for capturing network traffic, basically a file that logs data sent through a network.
+The most logical way to read it (to me) is through **wireshark** so let's do it.
+First of, we need the file, file which is located in our VM that does not have wireshark installed and where we have no rights to install it.
+let's use **SCP**
+SCP allows me to copy a file securely through an ssh connection so you are going to need your level02 token.
+Ok now we have the file let's see that.
+![](./.img/wshk.png)
