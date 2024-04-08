@@ -4,7 +4,7 @@
 ### level00 :
 ok so, first of, what do we have to work with ?
 
-```
+```sh
 level00@SnowCrash:~$ ls -la
 total 12
 dr-xr-x---+ 1 level00 level00  100 Mar  5  2016 .
@@ -17,16 +17,16 @@ so, we don't have much to work with, at least here !
 Let's try to aim directly for the flag.
 When running the following command : `ls -lR / 2>/dev/null | grep flag00`
 we get :
-```
+```sh
 ----r--r-- 1 flag00  flag00      15 Mar  5  2016 john
 ----r--r--  1 flag00  flag00      15 Mar  5  2016 john
 ```
 Alright, well, that was easy enough ! now let's see if we can read it.
-```
+```sh
 $> whereis john
 john: /usr/sbin/john
 ```
-```
+```sh
 cat /usr/sbin/john
 cdiiddwpgswtgt
 ```
@@ -42,7 +42,7 @@ Now that you have inputed the password and recuperated the following token with 
 Let's repeat what we have done just before.
 using **ls** we can't find anything.
 Let's check */etc/passwd* just in case our user was a bit lazy...
-```
+```sh
 level01@SnowCrash:~$ cat /etc/passwd
 [...]
 flag01:42hDRfypTqqnw:3001:3001::/home/flag/flag01:/bin/bash
@@ -58,7 +58,7 @@ and well, fuck you for that.
 `f2av5il02puano7naaf6adaaf`
 
 # level02 :
-```
+```sh
 level02@SnowCrash:~$ ls -la
 total 24
 dr-x------ 1 level02 level02  120 Mar  5  2016 .
@@ -92,7 +92,7 @@ And right after inputing the password and launching getflag I get my token !
 `kooda2puivaav1idi4f57q8iq`
 
 # level03 :
-```
+```sh
 level03@SnowCrash:~$ ls -la
 total 24
 dr-x------ 1 level03 level03  120 Mar  5  2016 .
@@ -105,7 +105,7 @@ d--x--x--x 1 root    users    340 Aug 30  2015 ..
 A file again, and an executable.
 This is where it gets tricky.
 First let's execute it.
-```
+```sh
 level03@SnowCrash:~$ ./level03 | cat -e
 Exploit me$
 ```
@@ -113,7 +113,7 @@ Hmmm this isn't exactly helpful, and that means we're going to dive in the wonde
 What disassembling does is translating machine language into assembly language. A very useful **reverse-engineering** tool.
 I'll save you the trouble of looking for hours on end how to disassemble an executable properly. So here is what I ended up doing.
 First I disassemble level03 with ltrace and I get this :
-```
+```sh
 level03@SnowCrash:~$ ltrace ./level03 
 __libc_start_main(0x80484a4, 1, 0xbffff7f4, 0x8048510, 0x8048580 <unfinished ...>
 getegid()                                        = 2003
@@ -125,4 +125,12 @@ system("/usr/bin/env echo Exploit me"Exploit me
 --- SIGCHLD (Child exited) ---
 <... system resumed> )                           = 0
 +++ exited (status 0) +++
+```
+Do you see it ? Our ticket to level04. Laying inches from our fingers...
+`system("/usr/bin/env echo Exploit me"Exploit me`
+What we see here is the fact that they are using the built-in function `echo`.
+You might be wondering just why that's interesting ? Well see, what tells your computer where echo is defined is the `PATH` variable. A variable you can define **YOURSELF**.
+The only thing you'll need to do is add /tmp to your **ENV** with the following line :
+```sh
+export PATH=/tmp:$PATH
 ```
