@@ -41,7 +41,7 @@ Now that you have inputed the password and recuperated the following token with 
 # level01 :
 Let's repeat what we have done just before.
 using **ls** we can't find anything.
-Let's check */etc/passwd* just in case our user was a bit lazy...
+Let's check */etc/![alt text](image.jpg)* just in case our user was a bit lazy...
 ```
 level01@SnowCrash:~$ cat /etc/passwd
 [...]
@@ -76,3 +76,31 @@ let's use **SCP**
 SCP allows me to copy a file securely through an ssh connection so you are going to need your level02 token.
 Ok now we have the file let's see that.
 ![](./.img/wshk.png)
+This kind of looks like incomprehensible gibberish but we don't need to understand everything that is going on.
+What matters is the data, you just have to click on any packet and look if it has a subsection **Data** under **Transmission Control Protocol**.
+if it does, you will be able to read what was sent to you.
+After a bit of scrolling we can see that we have received a **login** and a **password** but we only want the password so let's focus on that.
+after reading every bytes of data sent after the **password** prompt we get :
+`f t _ w a n d r · · · N D R e l · L 0 L · ···`
+There are still a few bytes of data afterwards but after a while I understood that receiving `···` meant the end of line.
+So let's input the password yeah ?
+Again, that doesn't work. So what's the gist ?
+Well it turns out the **·** character means **backspace**, giving us the following password :
+`ft_waNDReL0L`
+(don't ask me why but it seems the last *backspace* does not work as one).
+And right after inputing the password and launching getflag I get my token !
+`kooda2puivaav1idi4f57q8iq`
+
+# level03 :
+```
+level03@SnowCrash:~$ ls -la
+total 24
+dr-x------ 1 level03 level03  120 Mar  5  2016 .
+d--x--x--x 1 root    users    340 Aug 30  2015 ..
+-r-x------ 1 level03 level03  220 Apr  3  2012 .bash_logout
+-r-x------ 1 level03 level03 3518 Aug 30  2015 .bashrc
+-rwsr-sr-x 1 flag03  level03 8627 Mar  5  2016 level03
+-r-x------ 1 level03 level03  675 Apr  3  2012 .profile
+```
+A file again, and an executable.
+This is where it gets tricky.
