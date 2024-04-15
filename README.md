@@ -134,3 +134,13 @@ The only thing you'll need to do is add /tmp to your **ENV** with the following 
 ```sh
 export PATH=/tmp:$PATH
 ```
+Now that you have you very own folder in the PATH you'll need to make echo execute getflag.
+There are quite a few ways to go at it such as making echo a symlink of getflag or copying getflag into echo, however I find the simplest answer is often the best so i'll just open my file with nano (or vim) and write **getfile** in the echo file.
+Then simply give the appropriate rights to your echo file and you should be good to go.
+```sh
+chmod 777 /tmp/echo
+```
+You can now execute **./level03** and get your token :
+`qi0maab88jeaj46qoumi7maus`
+
+# level04 :
