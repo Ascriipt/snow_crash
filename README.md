@@ -440,3 +440,38 @@ level09@SnowCrash:~$ ./level09 $(cat token)
 f5mpq;v�E��{�{��TS�W�����
 ```
 okay we might need a little program for that.
+```c
+#include <stdio.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <string.h>
+
+char* test(char* s) {
+  int i = -1;
+  char* newstr;
+  newstr = malloc(sizeof(char) * strlen(s));
+  while (s[++i])
+    newstr[i] = s[i] - i;
+  return newstr;
+}
+
+int main(int ac, char **av) {
+  if (ac != 2)
+    exit(1);
+  char* res = test(av[1]);
+  printf("%s", res);
+  free(res);
+  return 0;
+}
+```
+it's terrible code but that's not a problem. After using scp to copy token we read it and we get :
+```sh
+maparigi in ~/Documents/42/outer_circle/cyber/snow_crash on main λ ./resources/Level09/rev $(cat ./resources/Level09/token)
+f3iji1ju5yuevaus41q1afiuq%
+```
+```sh
+flag09@SnowCrash:~$ getflag
+Check flag.Here is your token : s5cAJpM8ev6XHw998pRWG728z
+```
+
+# Level10
