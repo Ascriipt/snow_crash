@@ -1,12 +1,9 @@
 #!/bin/bash
 
-# This file will be reserved so even if the link is deleted the file will stay
 random_file=$(head -c 500 /dev/urandom | tr -dc 'a-zA-Z0-9~!@#$%^&*_-' | fold -w 25 | head -n 1)
 
-# Crate a file with a random name
 touch /tmp/$random_file
 
-# This name will be used to create the symbolic link.
 link_name=$(head -c 500 /dev/urandom | tr -dc 'a-zA-Z0-9~!@#$%^&*_-' | fold -w 25 | head -n 1)
 
 while true

